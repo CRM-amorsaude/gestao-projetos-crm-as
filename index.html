@@ -44,6 +44,34 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
+
+        /* ── TipTap WYSIWYG ── */
+        .tiptap { outline: none; padding: 1rem; }
+        .tiptap > * + * { margin-top: 0.35rem; }
+        .tiptap p { font-size: 0.875rem; line-height: 1.65; color: #374151; }
+        .dark .tiptap p { color: #cbd5e1; }
+        .tiptap h1 { font-size: 1.5rem; font-weight: 900; line-height: 1.2; color: #0f172a; margin-top: 1.25rem; margin-bottom: 0.25rem; }
+        .tiptap h2 { font-size: 1.125rem; font-weight: 900; line-height: 1.2; color: #0f172a; margin-top: 1rem; margin-bottom: 0.25rem; }
+        .dark .tiptap h1, .dark .tiptap h2 { color: #f1f5f9; }
+        .tiptap ul { list-style: disc; padding-left: 1.35rem; }
+        .tiptap ol { list-style: decimal; padding-left: 1.35rem; }
+        .tiptap li { font-size: 0.875rem; line-height: 1.6; color: #374151; }
+        .dark .tiptap li { color: #cbd5e1; }
+        .tiptap blockquote { border-left: 4px solid #61C1D0; padding-left: 1rem; font-style: italic; color: #64748b; margin: 0.5rem 0; }
+        .dark .tiptap blockquote { color: #94a3b8; }
+        .tiptap code:not(pre code) { background: #f1f5f9; color: #ef4444; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-size: 0.82em; font-family: monospace; }
+        .dark .tiptap code:not(pre code) { background: #1e293b; color: #f87171; }
+        .tiptap pre { background: #0f172a; color: #34d399; padding: 1rem; border-radius: 0.75rem; margin: 0.75rem 0; overflow-x: auto; font-size: 0.75rem; line-height: 1.6; font-family: monospace; }
+        .tiptap pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+        .tiptap ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+        .tiptap ul[data-type="taskList"] > li { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0.2rem 0; }
+        .tiptap ul[data-type="taskList"] > li > label { display: flex; align-items: center; margin-top: 0.2rem; cursor: pointer; }
+        .tiptap ul[data-type="taskList"] > li > label > input[type="checkbox"] { margin: 0; accent-color: #61C1D0; width: 14px; height: 14px; }
+        .tiptap ul[data-type="taskList"] > li[data-checked="true"] > div { text-decoration: line-through; opacity: 0.45; }
+        .tiptap ul[data-type="taskList"] > li > div { font-size: 0.875rem; color: #374151; }
+        .dark .tiptap ul[data-type="taskList"] > li > div { color: #cbd5e1; }
+        .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #cbd5e1; pointer-events: none; float: left; height: 0; }
+        .dark .tiptap p.is-editor-empty:first-child::before { color: #334155; }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased transition-colors duration-300">

@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { TaskType, TaskStatus, TaskPriority, Sprint, User, Task, SprintStatus, OKR, KeyResult } from '../types';
+import WysiwygEditor from './WysiwygEditor';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -13,89 +14,6 @@ interface CreateTaskModalProps {
   okrs?: OKR[];
   keyResults?: KeyResult[];
 }
-
-const ToolbarBtn = ({ onClick, title, children }: { onClick: () => void; title: string; children: React.ReactNode }) => (
-  <button type="button" onClick={onClick} title={title} className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 transition-colors flex items-center justify-center min-w-[28px] h-7">
-    {children}
-  </button>
-);
-const TbDivider = () => <div className="w-px h-4 bg-slate-200 dark:bg-slate-600 mx-0.5 self-center shrink-0" />;
-
-const RichTextEditor = ({ label, value, onChange, placeholder, minHeight = '200px', required = false }: {
-  label?: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; minHeight?: string; required?: boolean;
-}) => {
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  const wrapSel = (pre: string, suf: string) => {
-    const ta = taRef.current; if (!ta) return;
-    const s = ta.selectionStart, e = ta.selectionEnd;
-    const sel = value.substring(s, e) || 'texto';
-    onChange(value.substring(0, s) + pre + sel + suf + value.substring(e));
-    setTimeout(() => { ta.focus(); ta.setSelectionRange(s + pre.length, s + pre.length + sel.length); }, 0);
-  };
-
-  const linePrefix = (pre: string) => {
-    const ta = taRef.current; if (!ta) return;
-    const s = ta.selectionStart;
-    const ls = value.lastIndexOf('\n', s - 1) + 1;
-    onChange(value.substring(0, ls) + pre + value.substring(ls));
-    setTimeout(() => { ta.focus(); const np = s + pre.length; ta.setSelectionRange(np, np); }, 0);
-  };
-
-  const insertAt = (text: string, cursorOff: number) => {
-    const ta = taRef.current; if (!ta) return;
-    const s = ta.selectionStart;
-    onChange(value.substring(0, s) + text + value.substring(s));
-    setTimeout(() => { ta.focus(); ta.setSelectionRange(s + cursorOff, s + cursorOff); }, 0);
-  };
-
-  const codeBlock = () => {
-    const ta = taRef.current; if (!ta) return;
-    const s = ta.selectionStart, e = ta.selectionEnd;
-    const sel = value.substring(s, e) || 'código aqui';
-    const pre = s > 0 && value[s - 1] !== '\n' ? '\n' : '';
-    const block = `${pre}\`\`\`\n${sel}\n\`\`\`\n`;
-    onChange(value.substring(0, s) + block + value.substring(e));
-    setTimeout(() => { ta.focus(); const cs = s + pre.length + 4; ta.setSelectionRange(cs, cs + sel.length); }, 0);
-  };
-
-  return (
-    <div className="space-y-2 text-left">
-      {label && (
-        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-          <span className={`size-1.5 rounded-full ${required ? 'bg-rose-500' : 'bg-primary/40'}`} />
-          {label}{required && <span className="text-rose-500 text-[10px] lowercase font-bold ml-1">(obrigatório)</span>}
-        </label>
-      )}
-      <div className="border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 transition-all bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-0.5 p-1.5 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-100 dark:border-slate-700 flex-wrap">
-          <ToolbarBtn onClick={() => wrapSel('**', '**')} title="Negrito"><span className="material-symbols-outlined text-[18px]">format_bold</span></ToolbarBtn>
-          <ToolbarBtn onClick={() => wrapSel('*', '*')} title="Itálico"><span className="material-symbols-outlined text-[18px]">format_italic</span></ToolbarBtn>
-          <TbDivider />
-          <ToolbarBtn onClick={() => linePrefix('# ')} title="Título H1"><span className="text-[11px] font-black leading-none">H1</span></ToolbarBtn>
-          <ToolbarBtn onClick={() => linePrefix('## ')} title="Título H2"><span className="text-[11px] font-black leading-none">H2</span></ToolbarBtn>
-          <TbDivider />
-          <ToolbarBtn onClick={() => insertAt('\n- ', 3)} title="Lista com marcadores"><span className="material-symbols-outlined text-[18px]">format_list_bulleted</span></ToolbarBtn>
-          <ToolbarBtn onClick={() => insertAt('\n1. ', 4)} title="Lista numerada"><span className="material-symbols-outlined text-[18px]">format_list_numbered</span></ToolbarBtn>
-          <ToolbarBtn onClick={() => insertAt('\n- [ ] ', 7)} title="Lista de tarefas"><span className="material-symbols-outlined text-[18px]">checklist</span></ToolbarBtn>
-          <TbDivider />
-          <ToolbarBtn onClick={() => insertAt('\n> ', 3)} title="Citação"><span className="material-symbols-outlined text-[18px]">format_quote</span></ToolbarBtn>
-          <ToolbarBtn onClick={() => wrapSel('`', '`')} title="Código inline"><span className="material-symbols-outlined text-[18px]">code</span></ToolbarBtn>
-          <ToolbarBtn onClick={codeBlock} title="Bloco de código"><span className="material-symbols-outlined text-[18px]">terminal</span></ToolbarBtn>
-        </div>
-        <textarea
-          ref={taRef}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          style={{ minHeight }}
-          className="w-full p-4 bg-transparent border-none focus:ring-0 text-sm leading-relaxed resize-y placeholder:text-slate-300 dark:placeholder:text-slate-600 custom-scrollbar dark:text-white"
-        />
-      </div>
-    </div>
-  );
-};
 
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSubmit, sprints, epics, users, currentUser, okrs = [], keyResults = [] }) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -488,13 +406,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSu
 
           {/* Descrição — campo único */}
           <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-            <RichTextEditor
+            <WysiwygEditor
               label="Descrição"
               value={formData.description}
               onChange={v => setFormData({ ...formData, description: v })}
               placeholder={isEpic
                 ? 'Descreva a visão estratégica deste épico, objetivos e escopo...'
-                : 'Descreva o contexto, o que deve ser feito, critérios de aceite...\n\nUse a toolbar para adicionar formatação: **negrito**, *itálico*, listas, checklists e blocos de código.'}
+                : 'Descreva o contexto, o que deve ser feito, critérios de aceite...'}
               minHeight="280px"
             />
           </div>

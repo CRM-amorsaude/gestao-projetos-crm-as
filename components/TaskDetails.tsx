@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Task, TaskPriority, TaskStatus, TaskType, User, Sprint, SprintStatus, TaskLink } from '../types';
 import { supabase } from '../supabase';
+import { renderMarkdown } from '../utils/markdown';
+import WysiwygEditor from './WysiwygEditor';
 
 interface TaskDetailsProps {
   tasks: Task[];
@@ -18,154 +20,8 @@ interface CloudFile {
   url?: string;
 }
 
-// ─── Inline Markdown Renderer ─────────────────────────────────────────────────
-
-const renderInline = (text: string): React.ReactNode => {
-  if (!text) return null;
-  const codeParts = text.split(/(`[^`]+`)/g);
-  return codeParts.map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
-      return <code key={i} className="bg-slate-100 dark:bg-slate-800 text-rose-500 dark:text-rose-400 px-1.5 py-0.5 rounded text-[0.85em] font-mono">{part.slice(1, -1)}</code>;
-    }
-    const segs = part.split(/(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*[^*]+?\*|_[^_]+?_)/g);
-    return segs.map((seg, j) => {
-      if (seg.startsWith('***') && seg.endsWith('***')) return <strong key={`${i}-${j}`} className="font-black italic text-slate-900 dark:text-white">{seg.slice(3, -3)}</strong>;
-      if (seg.startsWith('**') && seg.endsWith('**')) return <strong key={`${i}-${j}`} className="font-black text-slate-900 dark:text-white">{seg.slice(2, -2)}</strong>;
-      if ((seg.startsWith('*') && seg.endsWith('*')) || (seg.startsWith('_') && seg.endsWith('_'))) return <em key={`${i}-${j}`} className="italic">{seg.slice(1, -1)}</em>;
-      return seg;
-    });
-  });
-};
-
-const renderMarkdown = (text: string): React.ReactNode => {
-  if (!text || text.trim() === '') return null;
-  const segments = text.split(/(```[\s\S]*?```)/g);
-  return segments.map((segment, si) => {
-    if (segment.startsWith('```')) {
-      const inner = segment.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
-      return (
-        <pre key={si} className="bg-slate-900 dark:bg-black text-emerald-400 text-xs p-4 rounded-xl my-3 overflow-x-auto custom-scrollbar font-mono leading-relaxed">
-          <code>{inner}</code>
-        </pre>
-      );
-    }
-    const lines = segment.split('\n');
-    return (
-      <React.Fragment key={si}>
-        {lines.map((line, i) => {
-          const t = line.trim();
-          if (t.startsWith('# ') && !t.startsWith('## ')) return <h1 key={i} className="text-2xl font-black text-slate-900 dark:text-white mt-5 mb-2 leading-tight">{renderInline(t.slice(2))}</h1>;
-          if (t.startsWith('## ') && !t.startsWith('### ')) return <h2 key={i} className="text-lg font-black text-slate-900 dark:text-white mt-4 mb-1.5 leading-tight">{renderInline(t.slice(3))}</h2>;
-          if (t.startsWith('### ')) return <h3 key={i} className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider mt-4 mb-1.5">{renderInline(t.slice(4))}</h3>;
-          if (t.startsWith('> ')) return <blockquote key={i} className="border-l-4 border-primary pl-4 my-2 italic text-slate-500 dark:text-slate-400 text-sm">{renderInline(t.slice(2))}</blockquote>;
-          if (t === '- [ ]' || t.startsWith('- [ ] ')) return <div key={i} className="flex items-start gap-3 my-1"><span className="material-symbols-outlined text-slate-300 dark:text-slate-600 text-[20px] mt-0.5">check_box_outline_blank</span><span className="text-slate-700 dark:text-slate-300 text-sm">{renderInline(t.slice(6))}</span></div>;
-          if (t === '- [x]' || t.startsWith('- [x] ')) return <div key={i} className="flex items-start gap-3 my-1"><span className="material-symbols-outlined text-primary filled text-[20px] mt-0.5">check_box</span><span className="text-slate-400 dark:text-slate-500 line-through text-sm">{renderInline(t.slice(6))}</span></div>;
-          if (t.startsWith('- ')) return <div key={i} className="flex items-start gap-3 my-1"><span className="size-1.5 rounded-full bg-primary mt-2 shrink-0"></span><span className="text-slate-700 dark:text-slate-300 text-sm">{renderInline(t.slice(2))}</span></div>;
-          const numMatch = t.match(/^(\d+)\.\s(.*)/);
-          if (numMatch) return <div key={i} className="flex items-start gap-3 my-1"><span className="text-xs font-black text-primary shrink-0 mt-0.5 w-5 text-right">{numMatch[1]}.</span><span className="text-slate-700 dark:text-slate-300 text-sm">{renderInline(numMatch[2])}</span></div>;
-          if (t === '') return <div key={i} className="h-2"></div>;
-          return <p key={i} className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed my-0.5">{renderInline(t)}</p>;
-        })}
-      </React.Fragment>
-    );
-  });
-};
-
-// ─── Description Editor (inline) ──────────────────────────────────────────────
-
-interface DescriptionEditorProps {
-  value: string;
-  onChange: (v: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-}
-
-const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange, onSave, onCancel }) => {
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  const wrapSel = (pre: string, suf: string) => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const sel = ta.value.substring(start, end);
-    const next = ta.value.substring(0, start) + pre + sel + suf + ta.value.substring(end);
-    onChange(next);
-    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + pre.length, end + pre.length); });
-  };
-
-  const linePrefix = (pre: string) => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1;
-    const next = ta.value.substring(0, lineStart) + pre + ta.value.substring(lineStart);
-    onChange(next);
-    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(start + pre.length, start + pre.length); });
-  };
-
-  const insertAt = (text: string, cursorOff: number) => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const pos = ta.selectionStart;
-    const next = ta.value.substring(0, pos) + text + ta.value.substring(pos);
-    onChange(next);
-    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos + cursorOff, pos + cursorOff); });
-  };
-
-  const codeBlock = () => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const pos = ta.selectionStart;
-    const sel = ta.value.substring(pos, ta.selectionEnd);
-    const block = '```\n' + (sel || 'código') + '\n```';
-    const next = ta.value.substring(0, pos) + block + ta.value.substring(ta.selectionEnd);
-    onChange(next);
-    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos + 4, pos + 4 + (sel || 'código').length); });
-  };
-
-  const ToolBtn = ({ icon, title, onClick }: { icon: string; title: string; onClick: () => void }) => (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      className="size-7 flex items-center justify-center rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-[13px] font-bold"
-    >
-      {icon.length <= 3 ? <span className="text-xs font-black">{icon}</span> : <span className="material-symbols-outlined text-[16px]">{icon}</span>}
-    </button>
-  );
-
-  return (
-    <div className="space-y-2 animate-in fade-in duration-200">
-      <div className="flex items-center gap-0.5 px-2 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl border border-slate-200 dark:border-slate-700 flex-wrap">
-        <ToolBtn icon="B" title="Negrito (Ctrl+B)" onClick={() => wrapSel('**', '**')} />
-        <ToolBtn icon="I" title="Itálico (Ctrl+I)" onClick={() => wrapSel('*', '*')} />
-        <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></span>
-        <ToolBtn icon="H1" title="Título 1" onClick={() => linePrefix('# ')} />
-        <ToolBtn icon="H2" title="Título 2" onClick={() => linePrefix('## ')} />
-        <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></span>
-        <ToolBtn icon="format_list_bulleted" title="Lista com marcadores" onClick={() => linePrefix('- ')} />
-        <ToolBtn icon="format_list_numbered" title="Lista numerada" onClick={() => linePrefix('1. ')} />
-        <ToolBtn icon="checklist" title="Lista de tarefas" onClick={() => linePrefix('- [ ] ')} />
-        <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></span>
-        <ToolBtn icon="format_quote" title="Citação" onClick={() => linePrefix('> ')} />
-        <ToolBtn icon="code" title="Código inline" onClick={() => wrapSel('`', '`')} />
-        <ToolBtn icon="data_object" title="Bloco de código" onClick={codeBlock} />
-      </div>
-      <textarea
-        ref={taRef}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full min-h-[280px] p-4 bg-white dark:bg-[#1a2430] border border-slate-200 dark:border-slate-700 rounded-b-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 dark:text-white dark:placeholder-slate-600 resize-y"
-        placeholder="Descreva o contexto, o que deve ser feito, critérios de aceite..."
-      />
-      <div className="flex justify-end gap-3 pt-1">
-        <button type="button" onClick={onCancel} className="px-4 py-1.5 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
-        <button type="button" onClick={onSave} className="px-6 py-1.5 bg-primary text-white text-[10px] font-black uppercase rounded-lg shadow-md hover:bg-primary/90 transition-colors">Salvar Alterações</button>
-      </div>
-    </div>
-  );
-};
+// Detecta se a descrição foi salva como HTML (novo formato) ou markdown (formato antigo)
+const isHtmlContent = (text: string) => text.trim().startsWith('<');
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
@@ -511,22 +367,27 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({ tasks, users, sprints, onUpda
 
             <div className="space-y-4 pt-4">
               {editingDescription !== null ? (
-                <DescriptionEditor
-                  value={editingDescription}
-                  onChange={setEditingDescription}
-                  onSave={() => {
-                    handleUpdate({ description: editingDescription });
-                    setEditingDescription(null);
-                  }}
-                  onCancel={() => setEditingDescription(null)}
-                />
+                <div className="animate-in fade-in duration-200 space-y-3">
+                  <WysiwygEditor
+                    value={editingDescription}
+                    onChange={setEditingDescription}
+                    placeholder="Descreva o contexto, o que deve ser feito, critérios de aceite..."
+                    minHeight="280px"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <button type="button" onClick={() => setEditingDescription(null)} className="px-4 py-1.5 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Cancelar</button>
+                    <button type="button" onClick={() => { handleUpdate({ description: editingDescription }); setEditingDescription(null); }} className="px-6 py-1.5 bg-primary text-white text-[10px] font-black uppercase rounded-lg shadow-md hover:bg-primary/90 transition-colors">Salvar Alterações</button>
+                  </div>
+                </div>
               ) : (
                 <div className="min-h-[200px]">
-                  {!task.description || task.description.trim() === '' ? (
+                  {!task.description || task.description.trim() === '' || task.description === '<p></p>' ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-300 dark:text-slate-700">
                       <span className="material-symbols-outlined text-6xl mb-2">description</span>
                       <p className="text-sm font-medium italic">Nenhuma descrição preenchida.</p>
                     </div>
+                  ) : isHtmlContent(task.description) ? (
+                    <div className="tiptap" dangerouslySetInnerHTML={{ __html: task.description }} />
                   ) : (
                     <div className="leading-relaxed">{renderMarkdown(task.description)}</div>
                   )}
