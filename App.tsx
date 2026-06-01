@@ -1,19 +1,32 @@
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+
+// Componentes sempre presentes no bundle inicial (layout raiz + login)
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Backlog from './components/Backlog';
-import ProjectBoard from './components/ProjectBoard';
-import TaskDetails from './components/TaskDetails';
-import TaskList from './components/TaskList';
-import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
 import CreateTaskModal from './components/CreateTaskModal';
-import Profile from './components/Profile';
-import Team from './components/Team';
-import StrategicPlanning from './components/StrategicPlanning';
 import NotificationPanel from './components/NotificationPanel';
+
+// Rotas carregadas sob demanda (code splitting)
+const Dashboard       = React.lazy(() => import('./components/Dashboard'));
+const Backlog         = React.lazy(() => import('./components/Backlog'));
+const ProjectBoard    = React.lazy(() => import('./components/ProjectBoard'));
+const TaskDetails     = React.lazy(() => import('./components/TaskDetails'));
+const TaskList        = React.lazy(() => import('./components/TaskList'));
+const Settings        = React.lazy(() => import('./components/Settings'));
+const Profile         = React.lazy(() => import('./components/Profile'));
+const Team            = React.lazy(() => import('./components/Team'));
+const StrategicPlanning = React.lazy(() => import('./components/StrategicPlanning'));
+
+const PageLoader: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+    <div className="flex flex-col items-center gap-3">
+      <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      <span className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-600">Carregando...</span>
+    </div>
+  </div>
+);
 import { Task, Sprint, User, TaskType, SprintStatus, TaskStatus, TaskPriority, Comment, ActivityLog, UserAccessLevel, OKR, KeyResult, Notification } from './types';
 import { supabase } from './supabase';
 
@@ -604,18 +617,20 @@ const App: React.FC = () => {
           </header>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <Routes>
-              <Route path="/" element={<Dashboard tasks={tasks} sprints={sprints} users={users} currentUser={currentUser} onNewTask={() => setIsCreateModalOpen(true)} onUpdateTask={handleUpdateTask} />} />
-              <Route path="/strategic" element={<StrategicPlanning users={users} tasks={tasks} okrs={okrs} keyResults={keyResults} onRefresh={() => fetchAllData(true)} />} />
-              <Route path="/backlog" element={<Backlog tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} onCreateSprint={handleCreateSprint} onUpdateSprint={handleUpdateSprint} onStartSprint={handleStartSprint} onNewTask={() => setIsCreateModalOpen(true)} />} />
-              <Route path="/list" element={<TaskList tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} />} />
-              <Route path="/board" element={<ProjectBoard tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} />} />
-              <Route path="/task/:id" element={<TaskDetails tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} onAddComment={handleAddComment} />} />
-              <Route path="/profile" element={<Profile currentUser={currentUser} onUpdate={() => fetchAllData(true)} />} />
-              <Route path="/team" element={<Team users={users} onAddUser={() => {}} />} />
-              <Route path="/settings" element={<Settings users={users} onUpdateUser={handleUpdateUser} />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Dashboard tasks={tasks} sprints={sprints} users={users} currentUser={currentUser} onNewTask={() => setIsCreateModalOpen(true)} onUpdateTask={handleUpdateTask} />} />
+                <Route path="/strategic" element={<StrategicPlanning users={users} tasks={tasks} okrs={okrs} keyResults={keyResults} onRefresh={() => fetchAllData(true)} />} />
+                <Route path="/backlog" element={<Backlog tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} onCreateSprint={handleCreateSprint} onUpdateSprint={handleUpdateSprint} onStartSprint={handleStartSprint} onNewTask={() => setIsCreateModalOpen(true)} />} />
+                <Route path="/list" element={<TaskList tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} />} />
+                <Route path="/board" element={<ProjectBoard tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} />} />
+                <Route path="/task/:id" element={<TaskDetails tasks={tasks} sprints={sprints} users={users} onUpdateTask={handleUpdateTask} onAddComment={handleAddComment} />} />
+                <Route path="/profile" element={<Profile currentUser={currentUser} onUpdate={() => fetchAllData(true)} />} />
+                <Route path="/team" element={<Team users={users} onAddUser={() => {}} />} />
+                <Route path="/settings" element={<Settings users={users} onUpdateUser={handleUpdateUser} />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
