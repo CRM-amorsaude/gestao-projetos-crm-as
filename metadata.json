@@ -1,0 +1,7 @@
+{
+  "name": "Sistema de gestão de projetos AmorSaúde",
+  "description": "A robust internal project and task management system designed specifically for the AmorSaúde CRM team, featuring Kanban boards, backlog management, and detailed task workflows.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
