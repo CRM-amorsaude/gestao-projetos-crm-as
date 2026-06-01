@@ -44,11 +44,9 @@
         .material-symbols-outlined.filled {
             font-variation-settings: 'FILL' 1;
         }
-        .custom-scrollbar { scroll-behavior: auto; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
+        /* Scrollbar nativa (acelerada por GPU) — substitui ::-webkit-scrollbar que desativa compositing */
+        .custom-scrollbar { scroll-behavior: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .dark .custom-scrollbar { scrollbar-color: #1e293b transparent; }
 
         /* ── TipTap WYSIWYG ── */
         .tiptap { outline: none; padding: 1rem; }
