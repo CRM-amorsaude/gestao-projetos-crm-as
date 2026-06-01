@@ -616,7 +616,7 @@ const App: React.FC = () => {
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar scroll-auto">
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Dashboard tasks={tasks} sprints={sprints} users={users} currentUser={currentUser} onNewTask={() => setIsCreateModalOpen(true)} onUpdateTask={handleUpdateTask} />} />
