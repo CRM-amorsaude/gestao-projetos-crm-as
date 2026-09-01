@@ -1,0 +1,117 @@
+{
+  "name": "MCP Server - Claude AI",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mcp-trigger",
+      "name": "MCP Server Trigger",
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 1,
+      "position": [260, 300],
+      "webhookId": "1e6981ca-5c0f-4408-b57b-d319ea6221ba"
+    },
+    {
+      "parameters": {
+        "name": "listar_workflows",
+        "description": "Lista todos os workflows existentes no n8n. Use para ver quais automações estão ativas ou inativas.",
+        "method": "GET",
+        "url": "https://n8n.crmamorsaude.com/api/v1/workflows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZjIyM2VlNi1jZDY4LTRjNWItYWEyNy1kNTQxNzE4NTQ3NzMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYmM4NDYyYjctNDdjMC00MDhkLWE1MzYtNjMwNzM1ODQ1NzdhIiwiaWF0IjoxNzgxNTMyNDI4fQ.1s6it169O0MHd4-rPpKhkSfz4UoPUM9qVVZJt7xtCWA"
+            }
+          ]
+        }
+      },
+      "id": "tool-list-workflows",
+      "name": "Listar Workflows",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [500, 160]
+    },
+    {
+      "parameters": {
+        "name": "buscar_workflow",
+        "description": "Busca os detalhes completos de um workflow específico pelo ID. Retorna nós, conexões e configurações.",
+        "method": "GET",
+        "url": "=https://n8n.crmamorsaude.com/api/v1/workflows/{{ $fromAI('workflow_id', 'ID do workflow a buscar', 'string') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZjIyM2VlNi1jZDY4LTRjNWItYWEyNy1kNTQxNzE4NTQ3NzMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYmM4NDYyYjctNDdjMC00MDhkLWE1MzYtNjMwNzM1ODQ1NzdhIiwiaWF0IjoxNzgxNTMyNDI4fQ.1s6it169O0MHd4-rPpKhkSfz4UoPUM9qVVZJt7xtCWA"
+            }
+          ]
+        }
+      },
+      "id": "tool-get-workflow",
+      "name": "Buscar Workflow por ID",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "name": "ativar_desativar_workflow",
+        "description": "Ativa ou desativa um workflow. Use 'activate' para ativar ou 'deactivate' para desativar.",
+        "method": "=={{ $fromAI('acao', 'Ação: activate ou deactivate', 'string') === 'activate' ? 'POST' : 'POST' }}",
+        "url": "=https://n8n.crmamorsaude.com/api/v1/workflows/{{ $fromAI('workflow_id', 'ID do workflow', 'string') }}/{{ $fromAI('acao', 'activate ou deactivate', 'string') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZjIyM2VlNi1jZDY4LTRjNWItYWEyNy1kNTQxNzE4NTQ3NzMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYmM4NDYyYjctNDdjMC00MDhkLWE1MzYtNjMwNzM1ODQ1NzdhIiwiaWF0IjoxNzgxNTMyNDI4fQ.1s6it169O0MHd4-rPpKhkSfz4UoPUM9qVVZJt7xtCWA"
+            }
+          ]
+        }
+      },
+      "id": "tool-toggle-workflow",
+      "name": "Ativar ou Desativar Workflow",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [500, 440]
+    },
+    {
+      "parameters": {
+        "name": "listar_execucoes",
+        "description": "Lista as últimas execuções de um workflow. Útil para verificar se está funcionando corretamente.",
+        "method": "GET",
+        "url": "=https://n8n.crmamorsaude.com/api/v1/executions?workflowId={{ $fromAI('workflow_id', 'ID do workflow', 'string') }}&limit=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ZjIyM2VlNi1jZDY4LTRjNWItYWEyNy1kNTQxNzE4NTQ3NzMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiYmM4NDYyYjctNDdjMC00MDhkLWE1MzYtNjMwNzM1ODQ1NzdhIiwiaWF0IjoxNzgxNTMyNDI4fQ.1s6it169O0MHd4-rPpKhkSfz4UoPUM9qVVZJt7xtCWA"
+            }
+          ]
+        }
+      },
+      "id": "tool-list-executions",
+      "name": "Listar Execuções",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [500, 580]
+    }
+  ],
+  "connections": {
+    "MCP Server Trigger": {
+      "ai_tool": [
+        [{ "node": "Listar Workflows", "type": "ai_tool", "index": 0 }],
+        [{ "node": "Buscar Workflow por ID", "type": "ai_tool", "index": 0 }],
+        [{ "node": "Ativar ou Desativar Workflow", "type": "ai_tool", "index": 0 }],
+        [{ "node": "Listar Execuções", "type": "ai_tool", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
